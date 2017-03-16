@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+'''
+Qing Li, 20170131
+'''
+
+def main():
+    '''
+    This script calls addbib_core to add multiple bibliography records to the
+    destination file at the same time.
+    '''
+    import sys
+    import re
+    import subprocess
+
+    usage_str = '''Usage:
+        addbib [Keyword1] [Keyword2] ... [RefFile]
+        '''
+
+    nargv = len(sys.argv)
+    if nargv < 3:
+        print(usage_str)
+        sys.exit(2)
+
+    keylist = sys.argv[1:nargv-1]
+    destfile = sys.argv[nargv-1]
+    keyre = r'[A-Za-z]*[0-9]{4},*'
+    if re.search(keyre, destfile):
+        print('Missing output file name.\n')
+        sys.exit(1)
+
+    for keyname in keylist:
+        keyname = keyname.strip(',')
+        cp = subprocess.run(['addbib_core', keyname, destfile])
+        cp.check_returncode()
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+'''
+Qing Li, 20170131
+'''
+
+def main():
+    '''
+    This script searches for bibliography record in the MyLibrary.bib
+    file with the input keyword (citation key) and writes the full record
+    to the destination file.
+    '''
+
+    import sys
+    import re
+    import os
+
+    usage_str = '''Usage:
+        addbib_core [Keyword] [DestFile]
+    '''
+    if len(sys.argv) != 3:
+        print(usage_str)
+        sys.exit(2)
+
+    keyname = sys.argv[1]
+    destfile = sys.argv[2]
+    srcfile = '/Users/qingli/GoogleDrive/BrownWork/MyLibrary.bib'
+    keyprefix = r'@.*{'
+    keyre = keyprefix+keyname+','
+
+    # Check whether the record exists in the destination file
+    if os.path.isfile(destfile):
+        for line in open(destfile, 'r'):
+            if re.search(keyre, line):
+                print('The record '+keyname+' is already in '+destfile+'\n')
+                sys.exit(0)
+
+    # Find all the full record
+    l_found = 0
+    with open(srcfile, 'r') as infile:
+        for line in infile:
+            if re.search(keyre, line):
+                l_found = 1
+                newline = next(infile)
+                rec_info = line
+                while not re.search(keyprefix, newline):
+                    rec_info += newline
+                    newline = next(infile)
+
+    # Write to the destination file
+    if l_found == 0:
+        print('Keyword '+keyname+' not found.\n')
+    else:
+        print('Bibliography:')
+        print('--------')
+        print(rec_info)
+        print('Writing record '+keyname+' to file '+destfile+'...\n')
+        with open(destfile, 'a+') as outfile:
+            outfile.write(rec_info)
+
+if __name__ == "__main__":
+    main()

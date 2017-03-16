@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+'''
+Qing Li, 20170314
+'''
+
+def main():
+    """
+    This script combines multiple figures in a MxN array. It reads figure
+    names from an input figure list file and output a pdf file. The input
+    figures can be in format of eps or pdf.
+    """
+
+    import sys
+    import os
+    import subprocess
+
+    usage_str = '''Usage:
+        gridfig [M] [N] [FigList] [OutputFig]
+            M: # of columns
+            N: # of rows
+            FigList: a txt file containing the list of figures, should be
+                     in the left-to-right, top-to-bottom order to be placed
+                     in the M by N grid
+            OutputFig: filename of the output figure (do not include filename
+                     extension, .pdf will be added automatically)
+    '''
+    # process input arguments
+    if len(sys.argv) != 5:
+        print(usage_str)
+        sys.exit(2)
+
+    m = int(sys.argv[1])
+    n = int(sys.argv[2])
+    infile = sys.argv[3]
+    outfig = sys.argv[4]
+
+    # read figure list
+    nf = 0
+    figlist = [None] * m * n
+    with open(infile, 'r') as lfile:
+        for line in lfile:
+            figlist[nf] = line.strip()
+            nf += 1
+
+    # check the consistency of the input
+    if nf != m*n:
+        print('The number of figures listed in the file ' + infile + \
+                 ' does not equal to m*n.\n')
+        sys.exit(1)
+
+    # generate tex file
+    curdir = os.getcwd()
+    workdir = curdir+'/tmp'
+    os.makedirs(workdir, exist_ok=True)
+    texfile = workdir+'/'+outfig+'.tex'
+    tex_tabular_fig(texfile, m, n, figlist)
+
+    # link input figures to working directory
+    os.chdir(workdir)
+    for i in range(0, nf):
+        figname = curdir + '/' + figlist[i]
+        if os.path.isfile(figname):
+            cp = subprocess.run(['ln', '-sf', figname, './'])
+            cp.check_returncode()
+        else:
+            print('Input figure {} not exist.'.format(figname))
+            sys.exit(1)
+
+    # compile the tex file
+    cp = subprocess.run(['pdflatex', outfig])
+    cp.check_returncode()
+
+    # clean up working directory
+    cp = subprocess.run(['mv', outfig+'.pdf', curdir])
+    cp.check_returncode()
+    os.chdir(curdir)
+    # remove all files in workdir
+    for file in os.scandir(workdir):
+        os.remove(file.path)
+    # remove workdir
+    os.rmdir(workdir)
+
+def tex_tabular_fig(texfile, m, n, figlist):
+    '''
+    Generate the tex file for tabular figures.
+    '''
+    import string
+    abc = list(string.ascii_lowercase)
+    str_head = '\\documentclass{standalone}\n\n' + \
+               '\\usepackage{graphicx}\n\n'
+    str_doc  = '\n\\begin{document}\n' + \
+               '\\setlength{\\tabcolsep}{1pt}\n' + \
+               '\\renewcommand{\\arraystretch}{0.5}\n' + \
+               '\\begin{{tabular}}{{ *{}{{c}} }}\n'.format(m)
+    str_tail = '\\end{tabular}\n\n' + \
+               '\\end{document}\n'
+    str_size = '{:3.2f}'.format(0.33)
+    with open(texfile, 'w') as outfile:
+        # write file head: documentclass, usepackage
+        outfile.write(str_head)
+        # write lines: newcommands
+        for i in range(0, n):
+            for j in range(0, m):
+                k = i*m+j
+                str_fig = '\\fig{}{}'.format(abc[i],abc[j])
+                str_ncmd = '\\newcommand{' + str_fig + \
+                        '}{\\includegraphics[width=' + str_size + \
+                        '\\linewidth,height=' + str_size + \
+                        '\\linewidth]{' + figlist[k] + '}}'
+                outfile.write(str_ncmd+'\n')
+        # write lines: document, tabular
+        outfile.write(str_doc)
+        # write lines: table
+        for i in range(0, n):
+            # write figures and labels
+            str_fig = '\t'
+            str_label = '\t'
+            for j in range(0, m):
+                k = i*m+j
+                str_fig += '\\fig{}{} '.format(abc[i],abc[j])
+                str_label += '{{\\footnotesize ({})}} '.format(abc[k])
+                if j != m-1:
+                    str_fig += '& '
+                    str_label += '& '
+                else:
+                    str_fig += '\\\\'
+                    # no \\ in the last line
+                    if i != n-1:
+                        str_label += '\\\\'
+            outfile.write(str_fig+'\n')
+            outfile.write(str_label+'\n')
+        # write file tail: end tabular, document
+        outfile.write(str_tail)
+
+if __name__ == "__main__":
+    main()
