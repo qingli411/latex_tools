@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 '''
 Qing Li, 20170314
+         20170321 added flexiblity to adjust the width and height of each
+                  subfigure by either input the aspect ratio or set the width
+                  (measured by \linewidth in latex) in the figure list file
 '''
 
 def main():
     """
-    This script combines multiple figures in a MxN array. It reads figure
+    This script merges multiple figures in a MxN array. It reads figure
     names from an input figure list file and output a pdf file. The input
     figures can be in format of eps or pdf.
+
+    The width for each figure can be optionally set in the figure list file
+    (a number placed after the figure name, measured by a fraction of
+    \linewidth in latex)
     """
 
     import sys
@@ -15,7 +22,7 @@ def main():
     import subprocess
 
     usage_str = '''Usage:
-        gridfig [M] [N] [FigList] [OutputFig]
+        gridfig [M] [N] [FigList] [OutputFig] [Aspect ratio (Optional)]
             M: # of columns
             N: # of rows
             FigList: a txt file containing the list of figures, should be
@@ -23,24 +30,26 @@ def main():
                      in the M by N grid
             OutputFig: filename of the output figure (do not include filename
                      extension, .pdf will be added automatically)
+            Aspect ratio: optional, the aspect ratio of each subfigure
+                          (ratio of width to height), the original aspect
+                          ratio is kept if not set
     '''
     # process input arguments
-    if len(sys.argv) != 5:
+    nargs = len(sys.argv)
+    if nargs < 5 or nargs > 6:
         print(usage_str)
         sys.exit(2)
-
     m = int(sys.argv[1])
     n = int(sys.argv[2])
     infile = sys.argv[3]
     outfig = sys.argv[4]
+    if nargs == 6:
+        ra = float(sys.argv[5])
+    else:
+        ra = 0
 
-    # read figure list
-    nf = 0
-    figlist = [None] * m * n
-    with open(infile, 'r') as lfile:
-        for line in lfile:
-            figlist[nf] = line.strip()
-            nf += 1
+    # count figure numbers
+    nf = line_count(infile)
 
     # check the consistency of the input
     if nf != m*n:
@@ -48,12 +57,33 @@ def main():
                  ' does not equal to m*n.\n')
         sys.exit(1)
 
+    # get default figure width (measured in \linewidth in latex)
+    default_width = min([0.4, 1/m])
+    fwidth  = [default_width for i in range(0, nf)]
+
+    # read figure list
+    figlist = [None] * nf
+    ic = 0
+    with open(infile, 'r') as lfile:
+        for line in lfile:
+            tmp = line.strip()
+            tmp2 = tmp.split()
+            if len(tmp2) == 1:
+                figlist[ic] = tmp2[0]
+            elif len(tmp2) == 2:
+                figlist[ic] = tmp2[0]
+                fwidth[ic] = float(tmp2[1])
+            else:
+                print('Error in figure list.\n')
+                sys.exit(1)
+            ic += 1
+
     # generate tex file
     curdir = os.getcwd()
     workdir = curdir+'/tmp'
     os.makedirs(workdir, exist_ok=True)
     texfile = workdir+'/'+outfig+'.tex'
-    tex_tabular_fig(texfile, m, n, figlist)
+    tex_tabular_fig(texfile, m, n, figlist, fwidth, ra)
 
     # link input figures to working directory
     os.chdir(workdir)
@@ -80,7 +110,18 @@ def main():
     # remove workdir
     os.rmdir(workdir)
 
-def tex_tabular_fig(texfile, m, n, figlist):
+def line_count(infile):
+    '''
+    Returns line count for a file
+    '''
+    nf = 0
+    with open(infile, 'r') as lfile:
+        for line in lfile:
+            nf += 1
+    return nf
+
+
+def tex_tabular_fig(texfile, m, n, figlist, fwidth, ra):
     '''
     Generate the tex file for tabular figures.
     '''
@@ -94,20 +135,34 @@ def tex_tabular_fig(texfile, m, n, figlist):
                '\\begin{{tabular}}{{ *{}{{c}} }}\n'.format(m)
     str_tail = '\\end{tabular}\n\n' + \
                '\\end{document}\n'
-    str_size = '{:3.2f}'.format(0.33)
     with open(texfile, 'w') as outfile:
         # write file head: documentclass, usepackage
         outfile.write(str_head)
         # write lines: newcommands
-        for i in range(0, n):
-            for j in range(0, m):
-                k = i*m+j
-                str_fig = '\\fig{}{}'.format(abc[i],abc[j])
-                str_ncmd = '\\newcommand{' + str_fig + \
-                        '}{\\includegraphics[width=' + str_size + \
-                        '\\linewidth,height=' + str_size + \
-                        '\\linewidth]{' + figlist[k] + '}}'
-                outfile.write(str_ncmd+'\n')
+        if ra == 0:
+            # only set width
+            for i in range(0, n):
+                for j in range(0, m):
+                    k = i*m+j
+                    str_fig = '\\fig{}{}'.format(abc[i],abc[j])
+                    str_width = '{:3.2f}'.format(fwidth[k])
+                    str_ncmd = '\\newcommand{' + str_fig + \
+                            '}{\\includegraphics[width=' + str_width + \
+                            '\\linewidth]{' + figlist[k] + '}}'
+                    outfile.write(str_ncmd+'\n')
+        else:
+            # also set height by width and aspect ratio
+            for i in range(0, n):
+                for j in range(0, m):
+                    k = i*m+j
+                    str_fig = '\\fig{}{}'.format(abc[i],abc[j])
+                    str_width = '{:3.2f}'.format(fwidth[k])
+                    str_height = '{:3.2f}'.format(fwidth[k]/ra)
+                    str_ncmd = '\\newcommand{' + str_fig + \
+                            '}{\\includegraphics[width=' + str_width + \
+                            '\\linewidth,height=' + str_height + \
+                            '\\linewidth]{' + figlist[k] + '}}'
+                    outfile.write(str_ncmd+'\n')
         # write lines: document, tabular
         outfile.write(str_doc)
         # write lines: table
