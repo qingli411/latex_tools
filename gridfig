@@ -86,17 +86,18 @@ def main():
     tex_tabular_fig(texfile, m, n, figlist, fwidth, ra)
 
     # link input figures to working directory
-    os.chdir(workdir)
     for i in range(0, nf):
-        figname = curdir + '/' + figlist[i]
+        figname = figlist[i]
         if os.path.isfile(figname):
-            cp = subprocess.run(['ln', '-sf', figname, './'])
+            figpath = os.path.abspath(figname)
+            cp = subprocess.run(['ln', '-sf', figpath, workdir])
             cp.check_returncode()
         else:
             print('Input figure {} not exist.'.format(figname))
             sys.exit(1)
 
     # compile the tex file
+    os.chdir(workdir)
     cp = subprocess.run(['pdflatex', outfig])
     cp.check_returncode()
 
@@ -146,9 +147,11 @@ def tex_tabular_fig(texfile, m, n, figlist, fwidth, ra):
                     k = i*m+j
                     str_fig = '\\fig{}{}'.format(abc[i],abc[j])
                     str_width = '{:3.2f}'.format(fwidth[k])
+                    tmp = figlist[k].split('/')
+                    figname = tmp[-1]
                     str_ncmd = '\\newcommand{' + str_fig + \
                             '}{\\includegraphics[width=' + str_width + \
-                            '\\linewidth]{' + figlist[k] + '}}'
+                            '\\linewidth]{' + figname + '}}'
                     outfile.write(str_ncmd+'\n')
         else:
             # also set height by width and aspect ratio
@@ -158,10 +161,12 @@ def tex_tabular_fig(texfile, m, n, figlist, fwidth, ra):
                     str_fig = '\\fig{}{}'.format(abc[i],abc[j])
                     str_width = '{:3.2f}'.format(fwidth[k])
                     str_height = '{:3.2f}'.format(fwidth[k]/ra)
+                    tmp = figlist[k].split('/')
+                    figname = tmp[-1]
                     str_ncmd = '\\newcommand{' + str_fig + \
                             '}{\\includegraphics[width=' + str_width + \
                             '\\linewidth,height=' + str_height + \
-                            '\\linewidth]{' + figlist[k] + '}}'
+                            '\\linewidth]{' + figname + '}}'
                     outfile.write(str_ncmd+'\n')
         # write lines: document, tabular
         outfile.write(str_doc)
