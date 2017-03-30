@@ -15,20 +15,26 @@ def main():
     import os
 
     usage_str = '''Usage:
-        addbib_core [Keyword] [DestFile]
+        addbib_core [Keyword] [RefFile]
+               Print on screen if no RefFile is specified.
     '''
-    if len(sys.argv) != 3:
+    narg = len(sys.argv)
+    if narg == 3:
+        l_write = 1
+        destfile = sys.argv[2]
+    elif narg == 2:
+        l_write = 0
+    else:
         print(usage_str)
         sys.exit(2)
 
     keyname = sys.argv[1]
-    destfile = sys.argv[2]
     srcfile = '/Users/qingli/GoogleDrive/BrownWork/MyLibrary.bib'
     keyprefix = r'@.*{'
     keyre = keyprefix+keyname+','
 
     # Check whether the record exists in the destination file
-    if os.path.isfile(destfile):
+    if l_write and os.path.isfile(destfile):
         for line in open(destfile, 'r'):
             if re.search(keyre, line):
                 print('The record '+keyname+' is already in '+destfile+'\n')
@@ -53,9 +59,10 @@ def main():
         print('Bibliography:')
         print('--------')
         print(rec_info)
-        print('Writing record '+keyname+' to file '+destfile+'...\n')
-        with open(destfile, 'a+') as outfile:
-            outfile.write(rec_info)
+        if l_write:
+            print('Writing record '+keyname+' to file '+destfile+'...\n')
+            with open(destfile, 'a+') as outfile:
+                outfile.write(rec_info)
 
 if __name__ == "__main__":
     main()

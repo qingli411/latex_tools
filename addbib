@@ -14,23 +14,29 @@ def main():
 
     usage_str = '''Usage:
         addbib [Keyword1] [Keyword2] ... [RefFile]
-        '''
+               Print on screen if no RefFile is specified.
+    '''
 
     nargv = len(sys.argv)
-    if nargv < 3:
+    if nargv < 2:
         print(usage_str)
         sys.exit(2)
 
-    keylist = sys.argv[1:nargv-1]
     destfile = sys.argv[nargv-1]
     keyre = r'[A-Za-z]*[0-9]{4},*'
     if re.search(keyre, destfile):
-        print('Missing output file name.\n')
-        sys.exit(1)
+        keylist = sys.argv[1:nargv]
+        l_write = 0
+    else:
+        keylist = sys.argv[1:nargv-1]
+        l_write = 1
 
     for keyname in keylist:
         keyname = keyname.strip(',')
-        cp = subprocess.run(['addbib_core', keyname, destfile])
+        if l_write:
+            cp = subprocess.run(['addbib_core', keyname, destfile])
+        else:
+            cp = subprocess.run(['addbib_core', keyname])
         cp.check_returncode()
 
 if __name__ == "__main__":
