@@ -34,18 +34,16 @@ def main():
     biblib = homedir+'/.addbib_lib'
 
     # check if the environment file exist
+    l_biblib = 0
+    l_srcfile = 0
     if os.path.isfile(biblib):
         with open(biblib, 'r') as infile:
             srcfile = infile.read()
-        l_biblib = 0
+        # Check if the bibliography library is properly set
+        if not os.path.isfile(srcfile):
+            l_srcfile = 1
     else:
         l_biblib = 1
-
-    # Check if the bibliography library is properly set
-    if os.path.isfile(srcfile):
-        l_srcfile = 0
-    else:
-        l_srcfile = 1
 
     # Update the environment if necessary
     if l_biblib or l_srcfile:
