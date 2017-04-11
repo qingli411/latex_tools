@@ -28,8 +28,37 @@ def main():
         print(usage_str)
         sys.exit(2)
 
+    # Set the bibliography library environment when called for
+    # the first time
+    homedir = os.path.expanduser('~')
+    biblib = homedir+'/.addbib_lib'
+
+    # check if the environment file exist
+    if os.path.isfile(biblib):
+        with open(biblib, 'r') as infile:
+            srcfile = infile.read()
+        l_biblib = 0
+    else:
+        l_biblib = 1
+
+    # Check if the bibliography library is properly set
+    if os.path.isfile(srcfile):
+        l_srcfile = 0
+    else:
+        l_srcfile = 1
+
+    # Update the environment if necessary
+    if l_biblib or l_srcfile:
+        while True:
+            srcfile = input('Where is the bibliography library file?\n')
+            if os.path.isfile(srcfile):
+                break
+            else:
+                print('Bib lib {} not exist.\n'.format(srcfile))
+        with open(biblib, 'w') as outfile:
+            outfile.write(srcfile)
+
     keyname = sys.argv[1]
-    srcfile = '/Users/qingli/GoogleDrive/BrownWork/MyLibrary.bib'
     keyprefix = r'@.*{'
     keyre = keyprefix+keyname+','
 
