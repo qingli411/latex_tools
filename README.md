@@ -4,20 +4,24 @@ This is a toolbox for paper writting using Latex.
 
 Tools inlcude:
 
-*addbib [Keyword1] [Keyword2] ... [RefFile]
+* **addbib**
 
-	Search citation keys [KeywordN] in a bibtex library and print the full citation information into [RefFile]. Print on screen if no [RefFile] is specified.
+`addbib [Keyword1] [Keyword2] ... [RefFile]`
 
-*gridfig [M] [N] [FigList] [OutputFig] [Aspect ratio (Optional)]
+Search citation keys [KeywordN] in a bibtex library and print the full citation information into [RefFile]. Print on screen if no [RefFile] is specified.
 
-	Merge several figures in one in a MxN matrix.
+* **gridfig**
 
-	M: # of columns
+`gridfig [M] [N] [FigList] [OutputFig] [Aspect ratio (Optional)]`
 
-	N: # of rows
+Merge several figures in one in a MxN matrix.
 
-	FigList: a txt file containing the list of figures, should be in the left-to-right, top-to-bottom order to be placed in the M by N grid
+M: # of columns
 
-	OutputFig: filename of the output figure (do not include filename extension, .pdf will be added automatically)
+N: # of rows
 
-	Aspect ratio: optional, the aspect ratio of each subfigure (ratio of width to height), the original aspect ratio is kept if not set 
+FigList: a txt file containing the list of figures, should be in the left-to-right, top-to-bottom order to be placed in the M by N grid
+
+OutputFig: filename of the output figure (do not include filename extension, .pdf will be added automatically)
+
+Aspect ratio: optional, the aspect ratio of each subfigure (ratio of width to height), the original aspect ratio is kept if not set 
