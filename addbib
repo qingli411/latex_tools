@@ -3,14 +3,15 @@
 Qing Li, 20170131
 '''
 
+import sys
+import re
+import os
+
 def main():
     '''
     This script calls addbib_core to add multiple bibliography records to the
     destination file at the same time.
     '''
-    import sys
-    import re
-    import subprocess
 
     usage_str = '''Usage:
         addbib [Keyword1] [Keyword2] ... [RefFile]
@@ -23,21 +24,103 @@ def main():
         sys.exit(2)
 
     destfile = sys.argv[nargv-1]
+    # Format of keyword
     keyre = r'[A-Za-z]*[0-9]{4},*'
+    # Check if last argument is a keyword or the RefFile
     if re.search(keyre, destfile):
+        # No RefFile is specified
         keylist = sys.argv[1:nargv]
         l_write = 0
+    elif nargv == 2:
+        # Stop if the only argument is the RefFile
+        print(usage_str)
+        sys.exit(2)
     else:
+        # Otherwise, set the last argument to RefFile
+        #  and the rest to keylist
         keylist = sys.argv[1:nargv-1]
         l_write = 1
 
     for keyname in keylist:
         keyname = keyname.strip(',')
         if l_write:
-            cp = subprocess.run(['addbib_core', keyname, destfile])
+            addbib_core(keyname, destfile)
         else:
-            cp = subprocess.run(['addbib_core', keyname])
-        cp.check_returncode()
+            addbib_core(keyname)
+
+def addbib_core(keyname, destfile=None):
+    '''
+    This script searches for bibliography record in the MyLibrary.bib
+    file with the input keyword (citation key) and writes the full record
+    to the destination file.
+    '''
+
+    if destfile is None:
+        l_write = 0
+    else:
+        l_write = 1
+
+    # Set the bibliography library environment when called for
+    #  the first time
+    homedir = os.path.expanduser('~')
+    biblib = homedir+'/.addbib_lib'
+
+    # Check if the environment file exist
+    l_biblib = 0
+    l_srcfile = 0
+    if os.path.isfile(biblib):
+        with open(biblib, 'r') as infile:
+            srcfile = infile.read()
+        # Check if the bibliography library is properly set
+        if not os.path.isfile(srcfile):
+            l_srcfile = 1
+    else:
+        l_biblib = 1
+
+    # Update the environment if necessary
+    if l_biblib or l_srcfile:
+        while True:
+            srcfile = input('Where is the bibliography library file?\n')
+            if os.path.isfile(srcfile):
+                break
+            else:
+                print('Bib lib {} not exist.\n'.format(srcfile))
+        with open(biblib, 'w') as outfile:
+            outfile.write(srcfile)
+
+    keyprefix = r'@.*{'
+    keyre = keyprefix+keyname+','
+
+    # Check whether the record exists in the destination file
+    if l_write and os.path.isfile(destfile):
+        for line in open(destfile, 'r'):
+            if re.search(keyre, line):
+                print('The record '+keyname+' is already in '+destfile+'\n')
+                return
+
+    # Find all the full record
+    l_found = 0
+    with open(srcfile, 'r') as infile:
+        for line in infile:
+            if re.search(keyre, line):
+                l_found = 1
+                newline = next(infile)
+                rec_info = line
+                while not re.search(keyprefix, newline):
+                    rec_info += newline
+                    newline = next(infile)
+
+    # Write to the destination file
+    if l_found == 0:
+        print('Keyword '+keyname+' not found.\n')
+    else:
+        print('Bibliography:')
+        print('--------')
+        print(rec_info)
+        if l_write:
+            print('Writing record '+keyname+' to file '+destfile+'...\n')
+            with open(destfile, 'a+') as outfile:
+                outfile.write(rec_info)
 
 if __name__ == "__main__":
     main()
