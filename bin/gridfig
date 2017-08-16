@@ -132,7 +132,7 @@ def tex_tabular_fig(texfile, m, n, figlist, fwidth, ra):
                '\\usepackage{graphicx}\n\n'
     str_doc  = '\n\\begin{document}\n' + \
                '\\setlength{\\tabcolsep}{1pt}\n' + \
-               '\\renewcommand{\\arraystretch}{0.5}\n' + \
+               '\\renewcommand{\\arraystretch}{0.8}\n' + \
                '\\begin{{tabular}}{{ *{}{{c}} }}\n'.format(m)
     str_tail = '\\end{tabular}\n\n' + \
                '\\end{document}\n'
