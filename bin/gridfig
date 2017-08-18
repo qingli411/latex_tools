@@ -88,9 +88,12 @@ def main():
     # link input figures to working directory
     for i in range(0, nf):
         figname = figlist[i]
+        iprefix = '{:03d}_'.format(i)
+        tmp = figname.split('/')
+        linkname = iprefix+tmp[-1]
         if os.path.isfile(figname):
             figpath = os.path.abspath(figname)
-            cp = subprocess.run(['ln', '-sf', figpath, workdir])
+            cp = subprocess.run(['ln', '-sf', figpath, workdir+'/'+linkname])
             cp.check_returncode()
         else:
             print('Input figure {} not exist.'.format(figname))
@@ -145,13 +148,14 @@ def tex_tabular_fig(texfile, m, n, figlist, fwidth, ra):
             for i in range(0, n):
                 for j in range(0, m):
                     k = i*m+j
+                    kprefix = '{:03d}_'.format(k)
                     str_fig = '\\fig{}{}'.format(abc[i],abc[j])
                     str_width = '{:3.2f}'.format(fwidth[k])
                     tmp = figlist[k].split('/')
                     figname = tmp[-1]
                     str_ncmd = '\\newcommand{' + str_fig + \
                             '}{\\includegraphics[width=' + str_width + \
-                            '\\linewidth]{' + figname + '}}'
+                            '\\linewidth]{' + kprefix+figname + '}}'
                     outfile.write(str_ncmd+'\n')
         else:
             # also set height by width and aspect ratio
