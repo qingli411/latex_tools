@@ -162,6 +162,7 @@ def tex_tabular_fig(texfile, m, n, figlist, fwidth, ra):
             for i in range(0, n):
                 for j in range(0, m):
                     k = i*m+j
+                    kprefix = '{:03d}_'.format(k)
                     str_fig = '\\fig{}{}'.format(abc[i],abc[j])
                     str_width = '{:3.2f}'.format(fwidth[k])
                     str_height = '{:3.2f}'.format(fwidth[k]/ra)
@@ -170,7 +171,7 @@ def tex_tabular_fig(texfile, m, n, figlist, fwidth, ra):
                     str_ncmd = '\\newcommand{' + str_fig + \
                             '}{\\includegraphics[width=' + str_width + \
                             '\\linewidth,height=' + str_height + \
-                            '\\linewidth]{' + figname + '}}'
+                            '\\linewidth]{' + kprefix+figname + '}}'
                     outfile.write(str_ncmd+'\n')
         # write lines: document, tabular
         outfile.write(str_doc)
