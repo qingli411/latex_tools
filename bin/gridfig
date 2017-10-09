@@ -7,7 +7,7 @@ Qing Li, 20170314
 '''
 
 def main():
-    """
+    '''
     This script merges multiple figures in a MxN array. It reads figure
     names from an input figure list file and output a pdf file. The input
     figures can be in format of eps or pdf.
@@ -15,7 +15,7 @@ def main():
     The width for each figure can be optionally set in the figure list file
     (a number placed after the figure name, measured by a fraction of
     \linewidth in latex)
-    """
+    '''
 
     import sys
     import os
