@@ -114,7 +114,7 @@ def addbib_core(keyname, destfile=None):
     if l_found == 0:
         print('Keyword '+keyname+' not found.\n')
     else:
-        print(rec_info)
+        print(rec_info, end='')
         if l_write:
             print('Writing record '+keyname+' to file '+destfile+'...\n')
             with open(destfile, 'a+') as outfile:
