@@ -4,35 +4,36 @@ Qing Li, 20170314
          20170321 added flexiblity to adjust the width and height of each
                   subfigure by either input the aspect ratio or set the width
                   (measured by \linewidth in latex) in the figure list file
+         20171025 optionally set the height instead of the width
 '''
 
 def main():
-    """
-    This script merges multiple figures in a MxN array. It reads figure
-    names from an input figure list file and output a pdf file. The input
-    figures can be in format of eps or pdf.
-
-    The width for each figure can be optionally set in the figure list file
-    (a number placed after the figure name, measured by a fraction of
-    \linewidth in latex)
-    """
 
     import sys
     import os
     import subprocess
 
     usage_str = '''Usage:
-        gridfig [M] [N] [FigList] [OutputFig] [Aspect ratio (Optional)]
-            M: # of columns
-            N: # of rows
-            FigList: a txt file containing the list of figures, should be
-                     in the left-to-right, top-to-bottom order to be placed
-                     in the M by N grid
-            OutputFig: filename of the output figure (do not include filename
-                     extension, .pdf will be added automatically)
-            Aspect ratio: optional, the aspect ratio of each subfigure
-                          (ratio of width to height), the original aspect
-                          ratio is kept if not set
+    gridfig [M] [N] [FigList] [OutputFig] [Aspect ratio (Optional)]
+        M: # of columns
+        N: # of rows
+        FigList: a txt file containing the list of figures, should be
+                 in the left-to-right, top-to-bottom order to be placed
+                 in the M by N grid
+        OutputFig: filename of the output figure (do not include filename
+                 extension, .pdf will be added automatically)
+        Aspect ratio: optional, the aspect ratio of each subfigure
+                      (ratio of width to height), the original aspect
+                      ratio is kept if not set
+
+    This script merges multiple figures in a MxN array. It reads figure
+    names from an input figure list file and output a pdf file. The input
+    figures can be in format of eps or pdf.
+
+    The height for each figure can be optionally set in the figure list file
+    (a number placed after the figure name, measured by a fraction of
+    \linewidth in latex)
+
     '''
     # process input arguments
     nargs = len(sys.argv)
@@ -61,6 +62,10 @@ def main():
     default_width = min([0.4, 1/m])
     fwidth  = [default_width for i in range(0, nf)]
 
+    # for optionally passed in height
+    luse_height = False
+    fheight = fwidth
+
     # read figure list
     figlist = [None] * nf
     ic = 0
@@ -72,7 +77,8 @@ def main():
                 figlist[ic] = tmp2[0]
             elif len(tmp2) == 2:
                 figlist[ic] = tmp2[0]
-                fwidth[ic] = float(tmp2[1])
+                fheight[ic] = float(tmp2[1])
+                luse_height = True
             else:
                 print('Error in figure list.\n')
                 sys.exit(1)
@@ -83,7 +89,10 @@ def main():
     workdir = curdir+'/tmp'
     os.makedirs(workdir, exist_ok=True)
     texfile = workdir+'/'+outfig+'.tex'
-    tex_tabular_fig(texfile, m, n, figlist, fwidth, ra)
+    if luse_height:
+        tex_tabular_fig(texfile, m, n, figlist, "height", fheight, ra)
+    else:
+        tex_tabular_fig(texfile, m, n, figlist, "width", fwidth, ra)
 
     # link input figures to working directory
     for i in range(0, nf):
@@ -125,7 +134,7 @@ def line_count(infile):
     return nf
 
 
-def tex_tabular_fig(texfile, m, n, figlist, fwidth, ra):
+def tex_tabular_fig(texfile, m, n, figlist, lbsize, fsize, ra):
     '''
     Generate the tex file for tabular figures.
     '''
@@ -139,6 +148,7 @@ def tex_tabular_fig(texfile, m, n, figlist, fwidth, ra):
                '\\begin{{tabular}}{{ *{}{{c}} }}\n'.format(m)
     str_tail = '\\end{tabular}\n\n' + \
                '\\end{document}\n'
+
     with open(texfile, 'w') as outfile:
         # write file head: documentclass, usepackage
         outfile.write(str_head)
@@ -150,24 +160,33 @@ def tex_tabular_fig(texfile, m, n, figlist, fwidth, ra):
                     k = i*m+j
                     kprefix = '{:03d}_'.format(k)
                     str_fig = '\\fig{}{}'.format(abc[i],abc[j])
-                    str_width = '{:3.2f}'.format(fwidth[k])
+                    str_size = '{:3.2f}'.format(fsize[k])
                     tmp = figlist[k].split('/')
                     figname = tmp[-1]
                     str_ncmd = '\\newcommand{' + str_fig + \
-                            '}{\\includegraphics[width=' + str_width + \
+                            '}{\\includegraphics['+ lbsize + '=' + str_size + \
                             '\\linewidth]{' + kprefix+figname + '}}'
                     outfile.write(str_ncmd+'\n')
         else:
-            # also set height by width and aspect ratio
+            # also set height and width by fsize and aspect ratio
+            if lbsize == "width":
+                fwidth = fsize
+                fheight = [x/ra for x in fwidth]
+            else:
+                fheight = fsize
+                fwidth = [x*ra for x in fheight]
+
+            print(fwidth)
+            print(fheight)
             for i in range(0, n):
                 for j in range(0, m):
                     k = i*m+j
                     kprefix = '{:03d}_'.format(k)
                     str_fig = '\\fig{}{}'.format(abc[i],abc[j])
-                    str_width = '{:3.2f}'.format(fwidth[k])
-                    str_height = '{:3.2f}'.format(fwidth[k]/ra)
                     tmp = figlist[k].split('/')
                     figname = tmp[-1]
+                    str_width = '{:3.2f}'.format(fwidth[k])
+                    str_height = '{:3.2f}'.format(fheight[k])
                     str_ncmd = '\\newcommand{' + str_fig + \
                             '}{\\includegraphics[width=' + str_width + \
                             '\\linewidth,height=' + str_height + \
