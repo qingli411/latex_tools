@@ -106,7 +106,8 @@ def addbib_core(keyname, destfile=None):
                 l_found = 1
                 newline = next(infile)
                 rec_info = line
-                while not re.search(keyprefix, newline):
+                # Add to record if not an empty line
+                while len(newline.strip()) > 0:
                     rec_info += newline
                     newline = next(infile)
 
@@ -114,7 +115,7 @@ def addbib_core(keyname, destfile=None):
     if l_found == 0:
         print('Keyword '+keyname+' not found.\n')
     else:
-        print(rec_info, end='')
+        print(rec_info)
         if l_write:
             print('Writing record '+keyname+' to file '+destfile+'...\n')
             with open(destfile, 'a+') as outfile:
