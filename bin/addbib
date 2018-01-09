@@ -119,7 +119,7 @@ def addbib_core(keyname, destfile=None):
         if l_write:
             print('Writing record '+keyname+' to file '+destfile+'...\n')
             with open(destfile, 'a+') as outfile:
-                outfile.write(rec_info)
+                outfile.write(rec_info+'\n')
 
 if __name__ == "__main__":
     main()
