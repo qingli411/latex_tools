@@ -7,47 +7,60 @@ Qing Li, 20170314
          20171025 optionally set the height instead of the width
 '''
 
+import sys
+import os
+import subprocess
+import argparse
+
 def main():
 
-    import sys
-    import os
-    import subprocess
+    # process the input arguments
+    parser = argparse.ArgumentParser(description="""
+            This script merges multiple figures in a NCOLUMN x NROW array.
+            It reads figure names from an input figure list file and output
+            a pdf file. The input figures can be in format of eps or pdf.\n
 
-    usage_str = '''Usage:
-    gridfig [M] [N] [FigList] [OutputFig] [Aspect ratio (Optional)]
-        M: # of columns
-        N: # of rows
-        FigList: a txt file containing the list of figures, should be
-                 in the left-to-right, top-to-bottom order to be placed
-                 in the M by N grid
-        OutputFig: filename of the output figure (do not include filename
-                 extension, .pdf will be added automatically)
-        Aspect ratio: optional, the aspect ratio of each subfigure
-                      (ratio of width to height), the original aspect
-                      ratio is kept if not set
+            The height for each figure can be optionally set in the figure list file
+            (a number placed after the figure name, measured by a fraction of
+            \linewidth in latex).
+            """)
+    parser.add_argument('-col', '--col', action='store', dest='ncol',
+            metavar='NCOLUMN', required=True, help='Number of columns')
+    parser.add_argument('-row', '--row', action='store', dest='nrow',
+            metavar='NROW', required=True, help='Number of rows')
+    parser.add_argument('-i', '--input', action='store', dest='fname_in',
+            metavar='FIGLIST', required=True, help="""List of figures.
+            A text file containing the list of figures, should be in the
+            left-to-right, top-to-bottom order to be placed in the
+            NCOLUMN by NROW grid.""")
+    parser.add_argument('-o', '--output', action='store', dest='fname_out',
+            metavar='FIGOUT', help="""Output figure name (excluding extension).
+            If not given, use the same name as FIGLIST.""")
+    parser.add_argument('-ra', '--aspect_ratio', action='store', dest='raspect',
+            metavar='RASPECT',
+            help='Aspect ratio of each subfigure (width to height)')
+    parser.add_argument('-label_off', '--label_off', action='store_true',
+            dest='label_off', help='Turn off labels')
+    parser.add_argument('--version', action='version', version='%(prog)s: 1.0')
+    # parsing arguments and save to args
+    args=parser.parse_args()
 
-    This script merges multiple figures in a MxN array. It reads figure
-    names from an input figure list file and output a pdf file. The input
-    figures can be in format of eps or pdf.
-
-    The height for each figure can be optionally set in the figure list file
-    (a number placed after the figure name, measured by a fraction of
-    \linewidth in latex)
-
-    '''
     # process input arguments
-    nargs = len(sys.argv)
-    if nargs < 5 or nargs > 6:
-        print(usage_str)
-        sys.exit(2)
-    m = int(sys.argv[1])
-    n = int(sys.argv[2])
-    infile = sys.argv[3]
-    outfig = sys.argv[4]
-    if nargs == 6:
-        ra = float(sys.argv[5])
+    m = int(args.ncol)
+    n = int(args.nrow)
+    infile = args.fname_in
+    if args.fname_out:
+        outfig = args.fname_out
+    else:
+        figlistname = os.path.basename(args.fname_in)
+        outfig, ext = figlistname.split('.')
+
+    if args.raspect:
+        ra = args.raspect
     else:
         ra = 0
+
+    l_label_off = args.label_off
 
     # count figure numbers
     nf = line_count(infile)
@@ -55,7 +68,7 @@ def main():
     # check the consistency of the input
     if nf != m*n:
         print('The number of figures listed in the file ' + infile + \
-                 ' does not equal to m*n.\n')
+                 ' does not equal to NCOLUMN * NROW.\n')
         sys.exit(1)
 
     # get default figure width (measured in \linewidth in latex)
@@ -90,9 +103,9 @@ def main():
     os.makedirs(workdir, exist_ok=True)
     texfile = workdir+'/'+outfig+'.tex'
     if luse_height:
-        tex_tabular_fig(texfile, m, n, figlist, "height", fheight, ra)
+        tex_tabular_fig(texfile, m, n, figlist, "height", fheight, ra, l_label_off)
     else:
-        tex_tabular_fig(texfile, m, n, figlist, "width", fwidth, ra)
+        tex_tabular_fig(texfile, m, n, figlist, "width", fwidth, ra, l_label_off)
 
     # link input figures to working directory
     for i in range(0, nf):
@@ -134,7 +147,7 @@ def line_count(infile):
     return nf
 
 
-def tex_tabular_fig(texfile, m, n, figlist, lbsize, fsize, ra):
+def tex_tabular_fig(texfile, m, n, figlist, lbsize, fsize, ra, l_label_off):
     '''
     Generate the tex file for tabular figures.
     '''
@@ -194,25 +207,41 @@ def tex_tabular_fig(texfile, m, n, figlist, lbsize, fsize, ra):
                     outfile.write(str_ncmd+'\n')
         # write lines: document, tabular
         outfile.write(str_doc)
-        # write lines: table
-        for i in range(0, n):
-            # write figures and labels
-            str_fig = '\t'
-            str_label = '\t'
-            for j in range(0, m):
-                k = i*m+j
-                str_fig += '\\fig{}{} '.format(abc[i],abc[j])
-                str_label += '{{\\footnotesize ({})}} '.format(abc[k])
-                if j != m-1:
-                    str_fig += '& '
-                    str_label += '& '
-                else:
-                    str_fig += '\\\\'
-                    # no \\ in the last line
-                    if i != n-1:
-                        str_label += '\\\\'
-            outfile.write(str_fig+'\n')
-            outfile.write(str_label+'\n')
+        if l_label_off:
+            # write lines: table
+            for i in range(0, n):
+                # write figures and labels
+                str_fig = '\t'
+                for j in range(0, m):
+                    k = i*m+j
+                    str_fig += '\\fig{}{} '.format(abc[i],abc[j])
+                    if j != m-1:
+                        str_fig += '& '
+                    else:
+                        # no \\ in the last line
+                        if i != n-1:
+                            str_fig += '\\\\'
+                outfile.write(str_fig+'\n')
+        else:
+            # write lines: table
+            for i in range(0, n):
+                # write figures and labels
+                str_fig = '\t'
+                str_label = '\t'
+                for j in range(0, m):
+                    k = i*m+j
+                    str_fig += '\\fig{}{} '.format(abc[i],abc[j])
+                    str_label += '{{\\footnotesize ({})}} '.format(abc[k])
+                    if j != m-1:
+                        str_fig += '& '
+                        str_label += '& '
+                    else:
+                        str_fig += '\\\\'
+                        # no \\ in the last line
+                        if i != n-1:
+                            str_label += '\\\\'
+                outfile.write(str_fig+'\n')
+                outfile.write(str_label+'\n')
         # write file tail: end tabular, document
         outfile.write(str_tail)
 
