@@ -109,7 +109,10 @@ def addbib_core(keyname, destfile=None):
                 # Add to record if not an empty line
                 while len(newline.strip()) > 0:
                     rec_info += newline
-                    newline = next(infile)
+                    try:
+                        newline = next(infile)
+                    except StopIteration:
+                        break
 
     # Write to the destination file
     if l_found == 0:
